@@ -1,8 +1,9 @@
 import streamlit as st
-import sqlite3
+import psycopg2
 from datetime import datetime
 from jyotishganit import calculate_birth_chart
 from groq import Groq
+from geopy.geocoders import Nominatim
 
 # ---- PASTE YOUR NEW KEY ----
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -11,36 +12,47 @@ PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu
 
 
 # ========== DATABASE: the permanent notebook ==========
+def get_connection():
+    return psycopg2.connect(st.secrets["DB_URL"])
+
+
 def init_db():
-    con = sqlite3.connect("astro.db")
-    con.execute("""CREATE TABLE IF NOT EXISTS users (
+    con = get_connection()
+    cur = con.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
         name     TEXT,
         summary  TEXT,
         memory   TEXT
     )""")
     con.commit()
+    cur.close()
     con.close()
 
 def load_user(username):
-    con = sqlite3.connect("astro.db")
-    row = con.execute(
-        "SELECT name, summary, memory FROM users WHERE username = ?",
-        (username,)).fetchone()
+    con = get_connection()
+    cur = con.cursor()
+    cur.execute(
+        "SELECT name, summary, memory FROM users WHERE username = %s",
+        (username,))
+    row = cur.fetchone()
+    cur.close()
     con.close()
     return row  # None if new, else (name, summary, memory)
 
 def save_user(username):
-    con = sqlite3.connect("astro.db")
-    con.execute("""INSERT INTO users (username, name, summary, memory)
-                   VALUES (?, ?, ?, ?)
-                   ON CONFLICT(username) DO UPDATE SET
-                       name    = excluded.name,
-                       summary = excluded.summary,
-                       memory  = excluded.memory""",
+    con = get_connection()
+    cur = con.cursor()
+    cur.execute("""INSERT INTO users (username, name, summary, memory)
+                   VALUES (%s, %s, %s, %s)
+                   ON CONFLICT (username) DO UPDATE SET
+                       name    = EXCLUDED.name,
+                       summary = EXCLUDED.summary,
+                       memory  = EXCLUDED.memory""",
                 (username, st.session_state.name,
                  st.session_state.summary, st.session_state.memory))
     con.commit()
+    cur.close()
     con.close()
 
 init_db()
@@ -55,6 +67,17 @@ def chart_summary(chart):
             pass
     lines.append(f"Moon Nakshatra: {chart.panchanga.nakshatra}")
     return "\n".join(lines)
+
+
+geolocator = Nominatim(user_agent="astro-ai")
+
+
+def city_to_coords(city_name):
+    """Turn a city name into (latitude, longitude). Returns None if not found."""
+    location = geolocator.geocode(city_name)
+    if location is None:          # city not found / typo
+        return None
+    return location.latitude, location.longitude
 
 
 def update_memory():
@@ -105,7 +128,8 @@ STRICT RULES:
 - Only reference past topics that appear in your memory note above. If the memory is empty,
   honestly say you don't have much history yet — do NOT make up a backstory.
 - If you don't know something, say so plainly. Never fill gaps with invented details.
-
+-No repetitive "astrology is just a guide" endings.
+Confident and warm, but not fatalistic (no doom-predicting)
 Speak in simple, warm, encouraging language. Explain what placements mean. Be human, never robotic."""
 
     full_messages = [{"role": "system", "content": system_prompt}] + st.session_state.messages
@@ -153,23 +177,28 @@ with st.sidebar:
         dob  = st.date_input("Date of birth", value=datetime(2000, 1, 1),
                              min_value=datetime(1940, 1, 1), max_value=datetime.now())
         tob  = st.time_input("Time of birth", value=datetime(2000, 1, 1, 12, 0).time())
-        lat  = st.number_input("Birth latitude",  value=26.4499, format="%.4f")
-        lon  = st.number_input("Birth longitude", value=80.3319, format="%.4f")
+        city = st.text_input("Birth city", "Lucknow, India")
 
         if st.button("Create my chart"):
-            birth_dt = datetime(dob.year, dob.month, dob.day, tob.hour, tob.minute, 0)
-            chart = calculate_birth_chart(
-                birth_date=birth_dt, latitude=lat, longitude=lon,
-                timezone_offset=5.5, name=name)
-            st.session_state.username = st.session_state.pending_username
-            st.session_state.name = name
-            st.session_state.summary = chart_summary(chart)
-            st.session_state.memory = ""
-            st.session_state.messages = [
-                {"role": "assistant",
-                 "content": f"Namaste {name} 🙏 I've read your chart. Ask me anything."}]
-            st.session_state.new_user = False
-            save_user(st.session_state.username)       # create them in the database
+            coords = city_to_coords(city)          # look up the city → coordinates
+
+            if coords is None:                     # city not found → stop & tell them
+                st.error("Couldn't find that city 😕 Try adding the country, e.g. 'Lucknow, India'")
+            else:
+                lat, lon = coords                  # unpack the pair into two variables
+                birth_dt = datetime(dob.year, dob.month, dob.day, tob.hour, tob.minute, 0)
+                chart = calculate_birth_chart(
+                    birth_date=birth_dt, latitude=lat, longitude=lon,
+                    timezone_offset=5.5, name=name)
+                st.session_state.username = st.session_state.pending_username
+                st.session_state.name = name
+                st.session_state.summary = chart_summary(chart)
+                st.session_state.memory = ""
+                st.session_state.messages = [
+                    {"role": "assistant",
+                     "content": f"Namaste {name} 🙏 I've read your chart. Ask me anything."}]
+                st.session_state.new_user = False
+                save_user(st.session_state.username)      # create them in the database
 
 
 # ========== MAIN AREA: the chat ==========
