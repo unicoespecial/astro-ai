@@ -4,6 +4,7 @@ from datetime import datetime
 from jyotishganit import calculate_birth_chart
 from groq import Groq
 from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderUnavailable, GeocoderTimedOut
 
 # ---- PASTE YOUR NEW KEY ----
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -73,10 +74,13 @@ geolocator = Nominatim(user_agent="astro-ai")
 
 
 def city_to_coords(city_name):
-    """Turn a city name into (latitude, longitude). Returns None if not found."""
-    location = geolocator.geocode(city_name)
-    if location is None:          # city not found / typo
-        return None
+    """Turn a city name into (latitude, longitude). Returns None if not found or lookup fails."""
+    try:
+        location = geolocator.geocode(city_name, timeout=10)
+    except (GeocoderUnavailable, GeocoderTimedOut):
+        return "unavailable"        # the lookup service itself failed
+    if location is None:
+        return None                 # city genuinely not found / typo
     return location.latitude, location.longitude
 
 
