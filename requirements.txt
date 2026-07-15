@@ -1,5 +1,5 @@
 streamlit
 jyotishganit
 groq
-geopy
 psycopg2-binary
+geonamescache
