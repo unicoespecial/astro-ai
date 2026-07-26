@@ -3,3 +3,4 @@ jyotishganit
 groq
 psycopg2-binary
 geonamescache
+bcrypt
