@@ -62,7 +62,8 @@ def chart_from_jyotishganit(source: Any) -> Chart:
     houses = _as_house_list(getattr(d1_chart, "houses", None))
     planets = _as_planet_list(getattr(d1_chart, "planets", None))
 
-    ascendant_source = houses[0] if houses else None
+    source_houses = getattr(d1_chart, "houses", None) or []
+    ascendant_source = source_houses[0] if source_houses else None
     ascendant = Ascendant.from_source(ascendant_source)
 
     person = getattr(source, "person", None)

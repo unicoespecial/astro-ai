@@ -9,6 +9,7 @@ class TestAstrologyCore(unittest.TestCase):
         house_1 = SimpleNamespace(
             number=1,
             sign="Aries",
+            sign_degrees=12.5,
             occupants=["Sun", "Moon"],
         )
         house_2 = SimpleNamespace(number=2, sign="Taurus", occupants=["Mars"])
@@ -17,6 +18,9 @@ class TestAstrologyCore(unittest.TestCase):
             celestial_body="Sun",
             name="Sun",
             sign="Aries",
+            sign_degrees=10.25,
+            nakshatra="Ashwini",
+            pada=4,
             house=1,
             motion_type="Direct",
             dignities=SimpleNamespace(dignity="Exaltation"),
@@ -28,6 +32,9 @@ class TestAstrologyCore(unittest.TestCase):
             celestial_body="Moon",
             name="Moon",
             sign="Taurus",
+            sign_degrees=5.75,
+            nakshatra="Krittika",
+            pada=2,
             house=2,
             motion_type="Retrograde",
             dignities=SimpleNamespace(dignity="Own sign"),
@@ -93,9 +100,15 @@ class TestAstrologyCore(unittest.TestCase):
         self.assertIsInstance(chart, Chart)
         self.assertEqual(chart.name, "Test User")
         self.assertEqual(chart.ascendant.sign, "Aries")
+        self.assertIsNone(chart.ascendant.longitude)
+        self.assertEqual(chart.ascendant.degree, 12.5)
         self.assertEqual(chart.nakshatra.name, "Ashwini")
         self.assertEqual(len(chart.planets), 2)
         self.assertEqual(chart.planets[0].name, "Sun")
+        self.assertEqual(chart.planets[0].sidereal_longitude, 10.25)
+        self.assertEqual(chart.planets[0].degree_within_sign, 10.25)
+        self.assertEqual(chart.planets[0].nakshatra, "Ashwini")
+        self.assertEqual(chart.planets[0].pada, 4)
         self.assertEqual(chart.houses[0].number, 1)
         self.assertEqual(chart.dashas.current.name, "Sun")
         self.assertEqual(chart.divisional_charts["d9"].name, "d9")
@@ -116,6 +129,26 @@ class TestAstrologyCore(unittest.TestCase):
         self.assertIn("Moon", dasha.antardashas)
         self.assertEqual(dasha.antardashas["Moon"].name, "Moon")
         self.assertIn("Mars", dasha.antardashas["Moon"].pratyantardashas)
+
+    def test_planet_preserves_explicit_longitude_and_derives_only_when_needed(self):
+        explicit = Planet.from_source(
+            SimpleNamespace(
+                celestial_body="Sun",
+                sign="Aries",
+                sign_degrees=10.25,
+                sidereal_longitude=11.5,
+            )
+        )
+        derived = Planet.from_source(
+            SimpleNamespace(
+                celestial_body="Moon",
+                sign="Taurus",
+                sign_degrees=5.75,
+            )
+        )
+
+        self.assertEqual(explicit.sidereal_longitude, 11.5)
+        self.assertEqual(derived.sidereal_longitude, 35.75)
 
     def test_divisional_chart_and_house_model(self):
         d9 = DivisionalChart.from_source(

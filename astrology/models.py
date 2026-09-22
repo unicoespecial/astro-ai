@@ -4,6 +4,22 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 
+ZODIAC_SIGNS = (
+    "Aries",
+    "Taurus",
+    "Gemini",
+    "Cancer",
+    "Leo",
+    "Virgo",
+    "Libra",
+    "Scorpio",
+    "Sagittarius",
+    "Capricorn",
+    "Aquarius",
+    "Pisces",
+)
+
+
 @dataclass
 class BirthData:
     date: str
@@ -20,6 +36,10 @@ class BirthData:
 class Planet:
     name: str
     sign: Optional[str] = None
+    sidereal_longitude: Optional[float] = None
+    degree_within_sign: Optional[float] = None
+    nakshatra: Optional[str] = None
+    pada: Optional[int] = None
     house: Optional[int] = None
     motion_type: Optional[str] = None
     dignity: Optional[str] = None
@@ -33,6 +53,12 @@ class Planet:
         if source is None:
             return cls(name="")
 
+        sign = getattr(source, "sign", None)
+        degree_within_sign = getattr(source, "sign_degrees", None)
+        sidereal_longitude = getattr(source, "sidereal_longitude", None)
+        if sidereal_longitude is None and sign in ZODIAC_SIGNS and degree_within_sign is not None:
+            sidereal_longitude = ZODIAC_SIGNS.index(sign) * 30 + float(degree_within_sign)
+
         dignities = getattr(source, "dignities", None)
         dignity_value = getattr(dignities, "dignity", None) if dignities is not None else None
 
@@ -41,7 +67,11 @@ class Planet:
 
         return cls(
             name=str(getattr(source, "celestial_body", None) or getattr(source, "name", "")),
-            sign=getattr(source, "sign", None),
+            sign=sign,
+            sidereal_longitude=sidereal_longitude,
+            degree_within_sign=degree_within_sign,
+            nakshatra=getattr(source, "nakshatra", None),
+            pada=getattr(source, "pada", None),
             house=getattr(source, "house", None),
             motion_type=getattr(source, "motion_type", None),
             dignity=dignity_value,
@@ -84,6 +114,7 @@ class House:
 @dataclass
 class Ascendant:
     sign: Optional[str] = None
+    longitude: Optional[float] = None
     degree: Optional[float] = None
     raw: Optional[Any] = None
 
@@ -94,7 +125,8 @@ class Ascendant:
 
         return cls(
             sign=getattr(source, "sign", None),
-            degree=getattr(source, "degree", None),
+            longitude=getattr(source, "longitude", getattr(source, "sidereal_longitude", None)),
+            degree=getattr(source, "degree", getattr(source, "sign_degrees", None)),
             raw=source,
         )
 

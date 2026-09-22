@@ -1,0 +1,75 @@
+{
+  "provider": {
+    "d1_chart": {
+      "houses": [
+        {"number": 1, "sign": "Aries", "sign_degrees": 25.0},
+        {"number": 2, "sign": "Taurus"}
+      ],
+      "planets": [
+        {"celestial_body": "Sun", "sign": "Aries", "sign_degrees": 10.0, "house": 1, "nakshatra": "Ashwini", "pada": 4},
+        {"celestial_body": "Moon", "sign": "Taurus", "sign_degrees": 2.0, "house": 1, "nakshatra": "Krittika", "pada": 1}
+      ]
+    },
+    "panchanga": {"nakshatra": "Krittika"},
+    "divisional_charts": {
+      "d9": {
+        "planets": [
+          {"celestial_body": "Sun", "sign": "Sagittarius", "house": 9},
+          {"celestial_body": "Moon", "sign": "Capricorn", "house": 10}
+        ]
+      },
+      "d10": {
+        "planets": [
+          {"celestial_body": "Sun", "sign": "Aries", "house": 1},
+          {"celestial_body": "Moon", "sign": "Taurus", "house": 2}
+        ]
+      }
+    },
+    "dashas": {
+      "all": {
+        "mahadashas": {
+          "Moon": {"start": "2000-01-01T00:00:00", "end": "2010-01-01T00:00:00"}
+        }
+      }
+    }
+  },
+  "reference": {
+    "ascendant": {"sign": "Aries", "degree": 25.0},
+    "planets": {
+      "Sun": {"longitude": 10.0, "sign": "Aries", "house": 1, "nakshatra": "Ashwini", "pada": 4},
+      "Moon": {"longitude": 32.0, "sign": "Taurus", "house": 1, "nakshatra": "Krittika", "pada": 1}
+    },
+    "moon": {"nakshatra": "Krittika", "pada": 1},
+    "houses": [
+      {"number": 1, "sign": "Aries"},
+      {"number": 2, "sign": "Taurus"}
+    ],
+    "divisional_charts": {
+      "d9": {
+        "planets": {
+          "Sun": {"sign": "Sagittarius", "house": 9},
+          "Moon": {"sign": "Capricorn", "house": 10}
+        }
+      },
+      "d10": {
+        "planets": {
+          "Sun": {"sign": "Aries", "house": 1},
+          "Moon": {"sign": "Taurus", "house": 2}
+        }
+      }
+    },
+    "vimshottari": {
+      "starting_lord": "Moon",
+      "start": "2000-01-01T00:00:00",
+      "end": "2010-01-01T00:00:00"
+    }
+  },
+  "house_method_difference": {
+    "ascendant_longitude": 25.0,
+    "ascendant_sign": "Aries",
+    "planet_longitude": 32.0,
+    "planet_sign": "Taurus",
+    "equal_house": 1,
+    "whole_sign_house": 2
+  }
+}
