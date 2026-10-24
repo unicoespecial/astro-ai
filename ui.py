@@ -16,12 +16,15 @@ def render_sidebar():
                 for key in list(st.session_state.keys()):
                     st.session_state.pop(key, None)
                 st.rerun()
-        elif is_configured():
+        elif st.session_state.get("database_available", is_configured()):
             st.write("Already have an account?")
             if st.button("Log in"):
                 login_dialog()
         else:
-            st.caption("Add DB_URL to enable saved accounts.")
+            if is_configured():
+                st.caption("Saved accounts are unavailable while the database connection is down.")
+            else:
+                st.caption("Add DB_URL to enable saved accounts.")
 
 
 def render_landing_page():
@@ -133,6 +136,9 @@ def ask_astrologer(client, user_text):
 
 def render_auth_prompt():
     if not st.session_state.get("username"):
-        st.warning("Your chart isn't saved yet.")
-        if st.button("Save my chart"):
-            signup_dialog()
+        if st.session_state.get("database_available", is_configured()):
+            st.warning("Your chart isn't saved yet.")
+            if st.button("Save my chart"):
+                signup_dialog()
+        else:
+            st.warning("Saved accounts are unavailable until a database is connected.")

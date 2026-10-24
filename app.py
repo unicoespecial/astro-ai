@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 
 import geonamescache
+import psycopg2
 import streamlit as st
 from groq import Groq
 
@@ -30,11 +31,19 @@ client = Groq(api_key=groq_api_key) if groq_api_key else None
 _cities = geonamescache.GeonamesCache().get_cities()
 _city_options = build_city_options(_cities)
 
+database_available = False
 if is_configured():
-    init_db()
+    try:
+        init_db()
+        database_available = True
+    except psycopg2.OperationalError:
+        pass
+st.session_state.database_available = database_available
 
 st.title(" Your AI Astrologer")
 render_sidebar()
+if is_configured() and not database_available:
+    st.warning("Saved accounts are temporarily unavailable because the database connection failed. You can still create and view a chart.")
 
 if "summary" not in st.session_state:
     render_landing_page()
