@@ -17,7 +17,7 @@ from chart import (
     div_summary,
     tz_offset,
 )
-from database import init_db, save_user
+from database import init_db, is_configured, save_user
 from renderer import render_chart_svg
 from styles import STYLES
 from ui import ask_astrologer, render_auth_prompt, render_chart_view, render_landing_page, render_reading_view, render_sidebar
@@ -25,11 +25,13 @@ from ui import ask_astrologer, render_auth_prompt, render_chart_view, render_lan
 st.set_page_config(page_title="AI Astrologer", page_icon="🔮", layout="centered")
 st.markdown(STYLES, unsafe_allow_html=True)
 
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+groq_api_key = st.secrets.get("GROQ_API_KEY", "")
+client = Groq(api_key=groq_api_key) if groq_api_key else None
 _cities = geonamescache.GeonamesCache().get_cities()
 _city_options = build_city_options(_cities)
 
-init_db()
+if is_configured():
+    init_db()
 
 st.title(" Your AI Astrologer")
 render_sidebar()
@@ -89,12 +91,14 @@ else:
     read_tab, chart_tab = st.tabs(["Reading", "Chart"])
 
     with read_tab:
+        if client is None:
+            st.info("AI readings are off until you add GROQ_API_KEY to your app secrets.")
         render_reading_view(client)
 
     with chart_tab:
         render_chart_view()
 
-    user_text = st.chat_input("Ask your astrologer...")
+    user_text = st.chat_input("Ask your astrologer...", disabled=client is None)
     if user_text:
         ask_astrologer(client, user_text)
 

@@ -2,8 +2,16 @@ import psycopg2
 import streamlit as st
 
 
+def is_configured():
+    """Return whether a database URL has been configured in Streamlit secrets."""
+    return bool(st.secrets.get("DB_URL", ""))
+
+
 def get_connection():
-    return psycopg2.connect(st.secrets["DB_URL"])
+    database_url = st.secrets.get("DB_URL")
+    if not database_url:
+        raise RuntimeError("Database is not configured. Add DB_URL to Streamlit secrets.")
+    return psycopg2.connect(database_url)
 
 
 def init_db():
