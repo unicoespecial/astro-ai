@@ -2,7 +2,7 @@ import streamlit as st
 
 from auth import login_dialog, signup_dialog
 from chart import chart_intro_message, chart_summary, build_placement_rows, current_dasha, div_summary
-from database import save_user
+from database import is_configured, save_user
 from memory import update_memory
 from prompts import build_chart_block, build_report_instruction, build_system_prompt, build_topic_context
 from renderer import render_chart_svg
@@ -16,10 +16,12 @@ def render_sidebar():
                 for key in list(st.session_state.keys()):
                     st.session_state.pop(key, None)
                 st.rerun()
-        else:
+        elif is_configured():
             st.write("Already have an account?")
             if st.button("Log in"):
                 login_dialog()
+        else:
+            st.caption("Add DB_URL to enable saved accounts.")
 
 
 def render_landing_page():
@@ -60,6 +62,7 @@ def render_reading_view(client):
         options=list(report_prompts.keys()),
         selection_mode="single",
         default=None,
+        disabled=client is None,
     )
     if selected_report and selected_report != st.session_state.active_report:
         st.session_state.active_report = selected_report
@@ -124,7 +127,8 @@ def ask_astrologer(client, user_text):
             reply = "The stars seem cloudy right now. Please try again in a moment."
             st.write(reply)
     st.session_state.messages.append({"role": "assistant", "content": reply})
-    update_memory(client)
+    if client is not None:
+        update_memory(client)
 
 
 def render_auth_prompt():

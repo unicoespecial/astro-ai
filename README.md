@@ -11,13 +11,25 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Deploy to Streamlit Cloud
+## Deploy from GitHub
 
-1. Create a GitHub repository and push this project.
-2. In Streamlit Cloud, create a new app from that repository.
-3. Set the main file to `app.py`.
-4. Add these secrets in Streamlit Cloud:
-   - `GROQ_API_KEY`
-   - `DB_URL`
+Pushing the code to GitHub stores it; to run the app, deploy it on [Streamlit Community Cloud](https://share.streamlit.io/):
+
+1. Push this repository to GitHub.
+2. In Streamlit Community Cloud, choose **Create app**, select this repository and branch, and set the main file to `app.py`.
+3. Deploy. The chart calculator works without secrets.
+4. To enable AI readings, open the app's **Settings → Secrets** and add:
+
+   ```toml
+   GROQ_API_KEY = "your-groq-api-key"
+   ```
+
+5. To enable saved accounts and chart memory, add a PostgreSQL connection URL too:
+
+   ```toml
+   DB_URL = "postgresql://user:password@host:5432/database?sslmode=require"
+   ```
+
+   Use a hosted PostgreSQL database and keep both values in Streamlit secrets. The app can run without `DB_URL`; account saving and login stay unavailable until it is set. Never commit real keys or database credentials to GitHub.
 
 Do not commit secrets to GitHub. The local `.streamlit/secrets.toml` file is ignored by Git.
