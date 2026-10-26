@@ -79,7 +79,8 @@ def render_chart_view():
         st.markdown(f"<div style='display:flex; justify-content:center;'>{st.session_state.chart_svg}</div>", unsafe_allow_html=True)
 
     if st.session_state.get("dasha_line"):
-        dasha_parts = st.session_state.dasha_line.split(":", 1)[1].split("->", 1)[0].strip()
+        dasha_line = st.session_state.dasha_line
+        dasha_parts = dasha_line.split(":", 1)[1].split("->", 1)[0].strip() if ":" in dasha_line else dasha_line
         st.markdown(f"<div class='hero-line'><span class='mini-pill'>Dasha</span> You are living your {dasha_parts} period.</div>", unsafe_allow_html=True)
 
     if st.session_state.get("placements"):
@@ -98,7 +99,7 @@ def render_chart_view():
                 )
 
     with st.expander("Chart text summary", expanded=False):
-        st.text(st.session_state.summary)
+        st.text(st.session_state.get("summary") or "No chart summary is available.")
 
 
 def ask_astrologer(client, user_text):

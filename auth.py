@@ -13,7 +13,10 @@ def check_password(password, stored_hash):
     """Does the typed password match the stored scramble?"""
     if not stored_hash:
         return False
-    return bcrypt.checkpw(password.encode(), stored_hash.encode())
+    try:
+        return bcrypt.checkpw(password.encode(), stored_hash.encode())
+    except (TypeError, ValueError):
+        return False
 
 
 @st.dialog("Save your chart")
@@ -28,8 +31,10 @@ def signup_dialog():
             st.error("That username is taken.")
         else:
             st.session_state.username = username
-            save_user(username, hash_password(password))
-            st.rerun()
+            if save_user(username, hash_password(password)):
+                st.rerun()
+            st.session_state.pop("username", None)
+            st.error("Could not save your chart right now. Please try again.")
 
 
 @st.dialog("Welcome back")
