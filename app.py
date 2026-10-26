@@ -1,4 +1,3 @@
-import time
 from datetime import datetime
 
 import geonamescache
@@ -26,15 +25,20 @@ st.set_page_config(page_title="AI Astrologer", page_icon="🔮", layout="centere
 st.markdown(STYLES, unsafe_allow_html=True)
 
 groq_api_key = st.secrets.get("GROQ_API_KEY", "")
-client = Groq(api_key=groq_api_key) if groq_api_key else None
+try:
+    client = Groq(api_key=groq_api_key) if groq_api_key else None
+except Exception:
+    client = None
 _cities = geonamescache.GeonamesCache().get_cities()
 _city_options = build_city_options(_cities)
 
-if is_configured():
-    init_db()
+database_available = bool(is_configured() and init_db())
+st.session_state.database_available = database_available
 
 st.title(" Your AI Astrologer")
 render_sidebar()
+if is_configured() and not database_available:
+    st.warning("Saved accounts are temporarily unavailable because the database connection failed. You can still create and view a chart.")
 
 if "summary" not in st.session_state:
     render_landing_page()
@@ -60,32 +64,43 @@ if "summary" not in st.session_state:
         else:
             reveal_placeholder = st.empty()
             reveal_placeholder.markdown("<div class='hero-line' style='text-align:center; margin-top:1rem;'>Reading the sky at the moment you were born…</div>", unsafe_allow_html=True)
-            lat, lon, tzname = coords
-            birth_dt = datetime(dob.year, dob.month, dob.day, tob.hour, tob.minute, 0)
-            chart = build_birth_chart(
-                birth_date=birth_dt,
-                latitude=lat,
-                longitude=lon,
-                timezone_offset=tz_offset(tzname, birth_dt),
-                name=name,
-            )
-            time.sleep(1.4)
-            reveal_placeholder.empty()
-            st.session_state.name = name
-            st.session_state.summary = chart_summary(chart)
-            st.session_state.chart_svg = render_chart_svg(chart)
-            st.session_state.d9 = div_summary(chart, "d9", "D9 / Navamsa")
-            st.session_state.d10 = div_summary(chart, "d10", "D10 / Dashamsa")
-            st.session_state.birth_date = dob.strftime("%Y-%m-%d")
-            st.session_state.birth_time = tob.strftime("%H:%M")
-            st.session_state.birth_city = city
-            st.session_state.dasha_line = current_dasha(chart)
-            st.session_state.placements = build_placement_rows(chart)
-            st.session_state.memory = ""
-            st.session_state.messages = [{"role": "assistant", "content": chart_intro_message(name, chart)}]
-            if st.session_state.get("username"):
-                save_user(st.session_state.username)
-            st.rerun()
+            try:
+                lat, lon, tzname = coords
+                birth_dt = datetime(dob.year, dob.month, dob.day, tob.hour, tob.minute, 0)
+                chart = build_birth_chart(
+                    birth_date=birth_dt,
+                    latitude=lat,
+                    longitude=lon,
+                    timezone_offset=tz_offset(tzname, birth_dt),
+                    name=name,
+                )
+                summary = chart_summary(chart)
+                chart_svg = render_chart_svg(chart)
+                d9 = div_summary(chart, "d9", "D9 / Navamsa")
+                d10 = div_summary(chart, "d10", "D10 / Dashamsa")
+                dasha_line = current_dasha(chart)
+                placements = build_placement_rows(chart)
+                intro_message = chart_intro_message(name, chart)
+            except Exception:
+                reveal_placeholder.empty()
+                st.error("Chart generation is temporarily unavailable. Please try again.")
+            else:
+                reveal_placeholder.empty()
+                st.session_state.name = name
+                st.session_state.summary = summary
+                st.session_state.chart_svg = chart_svg
+                st.session_state.d9 = d9
+                st.session_state.d10 = d10
+                st.session_state.birth_date = dob.strftime("%Y-%m-%d")
+                st.session_state.birth_time = tob.strftime("%H:%M")
+                st.session_state.birth_city = city
+                st.session_state.dasha_line = dasha_line
+                st.session_state.placements = placements
+                st.session_state.memory = ""
+                st.session_state.messages = [{"role": "assistant", "content": intro_message}]
+                if st.session_state.get("username") and not save_user(st.session_state.username):
+                    st.warning("Your chart is ready, but it could not be saved right now.")
+                st.rerun()
 else:
     render_auth_prompt()
     read_tab, chart_tab = st.tabs(["Reading", "Chart"])

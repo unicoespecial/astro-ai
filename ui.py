@@ -16,12 +16,15 @@ def render_sidebar():
                 for key in list(st.session_state.keys()):
                     st.session_state.pop(key, None)
                 st.rerun()
-        elif is_configured():
+        elif st.session_state.get("database_available", is_configured()):
             st.write("Already have an account?")
             if st.button("Log in"):
                 login_dialog()
         else:
-            st.caption("Add DB_URL to enable saved accounts.")
+            if is_configured():
+                st.caption("Saved accounts are unavailable while the database connection is down.")
+            else:
+                st.caption("Add DB_URL to enable saved accounts.")
 
 
 def render_landing_page():
@@ -76,7 +79,8 @@ def render_chart_view():
         st.markdown(f"<div style='display:flex; justify-content:center;'>{st.session_state.chart_svg}</div>", unsafe_allow_html=True)
 
     if st.session_state.get("dasha_line"):
-        dasha_parts = st.session_state.dasha_line.split(":", 1)[1].split("->", 1)[0].strip()
+        dasha_line = st.session_state.dasha_line
+        dasha_parts = dasha_line.split(":", 1)[1].split("->", 1)[0].strip() if ":" in dasha_line else dasha_line
         st.markdown(f"<div class='hero-line'><span class='mini-pill'>Dasha</span> You are living your {dasha_parts} period.</div>", unsafe_allow_html=True)
 
     if st.session_state.get("placements"):
@@ -95,7 +99,7 @@ def render_chart_view():
                 )
 
     with st.expander("Chart text summary", expanded=False):
-        st.text(st.session_state.summary)
+        st.text(st.session_state.get("summary") or "No chart summary is available.")
 
 
 def ask_astrologer(client, user_text):
@@ -133,6 +137,9 @@ def ask_astrologer(client, user_text):
 
 def render_auth_prompt():
     if not st.session_state.get("username"):
-        st.warning("Your chart isn't saved yet.")
-        if st.button("Save my chart"):
-            signup_dialog()
+        if st.session_state.get("database_available", is_configured()):
+            st.warning("Your chart isn't saved yet.")
+            if st.button("Save my chart"):
+                signup_dialog()
+        else:
+            st.warning("Saved accounts are unavailable until a database is connected.")
